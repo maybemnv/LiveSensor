@@ -1,0 +1,16 @@
+pymongo
+numpy 
+pandas
+seaborn
+scipy
+matplotlib
+tensorflow
+keras
+flask
+django
+scikit-learn
+beautifulsoup4
+sqlalchemy
+opencv-python
+nltk
+-e .
