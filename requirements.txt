@@ -13,4 +13,4 @@ beautifulsoup4
 sqlalchemy
 opencv-python
 nltk
--e .
+#-e .
