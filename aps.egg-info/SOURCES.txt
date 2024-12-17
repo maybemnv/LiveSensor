@@ -5,5 +5,12 @@ aps.egg-info/SOURCES.txt
 aps.egg-info/dependency_links.txt
 aps.egg-info/top_level.txt
 sensor/__init__.py
+<<<<<<< HEAD
 sensor/exception.py
 sensor/logger.py
+=======
+sensor/config.py
+sensor/exception.py
+sensor/logger.py
+sensor/utils.py
+>>>>>>> af51212 (Next commit)

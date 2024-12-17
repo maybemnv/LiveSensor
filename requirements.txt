@@ -1,16 +1,21 @@
 pymongo
-numpy 
 pandas
-seaborn
-scipy
 matplotlib
-tensorflow
-keras
-flask
-django
+numpy
+seaborn
 scikit-learn
+<<<<<<< HEAD
 beautifulsoup4
 sqlalchemy
 opencv-python
 nltk
 #-e .
+=======
+xgboost
+catboost
+prettytable
+miceforest
+imbalanced-learn
+python-dotenv
+-e .
+>>>>>>> af51212 (Next commit)
