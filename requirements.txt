@@ -1,4 +1,13 @@
-
+pymongo[srv]==4.2.0
+pandas
+numpy
+scikit-learn
+pymongo
+python-dotenv
+PyYAML
+dill
+scipy 
+imblearn==0.0
 dill==0.3.5.1
 dnspython==2.2.1
 evidently==0.1.58.dev0
