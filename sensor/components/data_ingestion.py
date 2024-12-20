@@ -5,6 +5,9 @@ from sensor.entity.artifact_entity import DataIngestionArtifact
 from sklearn.model_selection import train_test_split
 import os,sys
 from pandas import DataFrame
+from sensor.configuration.mongo_db_connection import MongoDBClient
+
+
 from sensor.data_access.sensor_data import SensorData
 from sensor.utils.main_utils import read_yaml_file
 from sensor.constant.training_pipeline import SCHEMA_FILE_PATH

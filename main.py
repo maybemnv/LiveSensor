@@ -1,34 +1,28 @@
-from sensor.configuration.mongo_db_connection import MongoDBClient
-from sensor.exception import SensorException
-import os,sys
-from sensor.logger import logging
+from fastapi import FastAPI, File, UploadFile, BackgroundTasks
+from starlette.responses import RedirectResponse, Response
 from sensor.pipeline import training_pipeline
 from sensor.pipeline.training_pipeline import TrainPipeline
-import os
-from sensor.utils.main_utils import read_yaml_file
+from sensor.ml.model.estimator import ModelResolver, TargetValueMapping
+from sensor.utils.main_utils import load_object, read_yaml_file
 from sensor.constant.training_pipeline import SAVED_MODEL_DIR
-from fastapi import FastAPI
 from sensor.constant.application import APP_HOST, APP_PORT
-from starlette.responses import RedirectResponse
-from uvicorn import run as app_run
-from fastapi.responses import Response
-from sensor.ml.model.estimator import ModelResolver,TargetValueMapping
-from sensor.utils.main_utils import load_object
+from sensor.logger import logging
 from fastapi.middleware.cors import CORSMiddleware
 import os
+import pandas as pd
+from io import StringIO
 
-env_file_path=os.path.join(os.getcwd(),"env.yaml")
+# Set environment variables
+env_file_path = os.path.join(os.getcwd(), "env.yaml")
 
 def set_env_variable(env_file_path):
-
-    if os.getenv('MONGO_DB_URL',None) is None:
+    if os.getenv('MONGO_DB_URL', None) is None:
         env_config = read_yaml_file(env_file_path)
-        os.environ['MONGO_DB_URL']=env_config['MONGO_DB_URL']
+        os.environ['MONGO_DB_URL'] = env_config['MONGO_DB_URL']
 
-
+# Initialize FastAPI
 app = FastAPI()
 origins = ["*"]
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -37,56 +31,72 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
+# Home route that redirects to docs
 @app.get("/", tags=["authentication"])
 async def index():
     return RedirectResponse(url="/docs")
 
+# Train route (asynchronous task for training)
 @app.get("/train")
-async def train_route():
+async def train_route(background_tasks: BackgroundTasks):
     try:
-
         train_pipeline = TrainPipeline()
+
         if train_pipeline.is_pipeline_running:
             return Response("Training pipeline is already running.")
-        train_pipeline.run_pipeline()
-        return Response("Training successful !!")
+
+        # Run training in the background
+        background_tasks.add_task(run_training_pipeline)
+        return Response("Training started in the background.")
     except Exception as e:
         return Response(f"Error Occurred! {e}")
 
-@app.get("/predict")
-async def predict_route():
+def run_training_pipeline():
     try:
-        #get data from user csv file
-        #conver csv file to dataframe
+        train_pipeline = TrainPipeline()
+        train_pipeline.run_pipeline()
+    except Exception as e:
+        logging.exception(f"Error during training: {e}")
 
-        df=None
+# Predict route (handles CSV upload for prediction)
+@app.post("/predict")
+async def predict_route(file: UploadFile = File(...)):
+    try:
+        # Read CSV file
+        contents = await file.read()
+        df = pd.read_csv(StringIO(contents.decode("utf-8")))
+
+        # Load the best model
         model_resolver = ModelResolver(model_dir=SAVED_MODEL_DIR)
         if not model_resolver.is_model_exists():
             return Response("Model is not available")
-        
+
         best_model_path = model_resolver.get_best_model_path()
         model = load_object(file_path=best_model_path)
+
+        # Predict
         y_pred = model.predict(df)
         df['predicted_column'] = y_pred
-        df['predicted_column'].replace(TargetValueMapping().reverse_mapping(),inplace=True)
-        
-        #decide how to return file to user.
-        
-    except Exception as e:
-        raise Response(f"Error Occured! {e}")
+        df['predicted_column'].replace(TargetValueMapping().reverse_mapping(), inplace=True)
 
+        # Return prediction result as CSV
+        result_csv = df.to_csv(index=False)
+        return Response(content=result_csv, media_type="text/csv", headers={"Content-Disposition": "attachment; filename=predictions.csv"})
+
+    except Exception as e:
+        return Response(f"Error Occurred: {e}")
+
+# Main function to run the app (for local execution)
 def main():
     try:
         set_env_variable(env_file_path)
         training_pipeline = TrainPipeline()
         training_pipeline.run_pipeline()
     except Exception as e:
-        print(e)
-        logging.exception(e)
+        logging.exception(f"Error occurred: {e}")
 
+import uvicorn
 
-if __name__=="__main__":
-    #main()
-    # set_env_variable(env_file_path)
-    app_run(app, host=APP_HOST, port=APP_PORT)
+if __name__ == "__main__":
+    uvicorn.run(app, host=APP_HOST, port=APP_PORT)
+

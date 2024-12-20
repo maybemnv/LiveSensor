@@ -25,4 +25,9 @@ websockets==10.3
 wincertstore==0.2
 xgboost==1.6.2
 neuro-mf==0.0.5
+dotenv
+imblearn
+fastapi
+PyYAML
+certifi
 -e .
